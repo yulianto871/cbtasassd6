@@ -1,0 +1,6 @@
+{
+  "name": "CBT ASAS SD Negeri Selomerto",
+  "description": "Aplikasi CMS CBT Asesmen Sumatif Akhir Semester (ASAS) Kelas 6 SD Negeri Selomerto dengan 6 tipe soal, leaderboard, unduh PDF, rekap nilai Excel, dan anti-curang.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
