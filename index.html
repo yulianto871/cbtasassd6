@@ -57,6 +57,8 @@ table{width:100%;border-collapse:collapse}th,td{border-bottom:2px solid var(--s)
 @media(max-width:960px){.ed-split{grid-template-columns:1fr}.ed-pv{position:static;max-height:none}}
 .tbl-ed{overflow-x:auto;margin:8px 0}.tbl-ed table{background:#fff}.tbl-ed input{padding:6px 8px;border-radius:8px;font-size:15px}
 .stim table{background:#fff;margin:4px 0}
+.chart{display:block;width:100%;max-width:560px;height:auto;color:var(--t)}.ovis{margin-top:6px}.ovis .chart{max-width:320px}.ovis table{margin-top:4px}.ch span{flex:1;min-width:0}
+.stimbox{border:2px dashed var(--b);border-radius:14px;padding:10px;margin:8px 0}.stimbox select{width:auto}
 </style></head><body><div id="app"></div><div id="mod"></div>
 <script>
 const $=s=>document.querySelector(s),uid=()=>'q'+Math.random().toString(36).slice(2,8);
@@ -213,10 +215,28 @@ const unduh=()=>{const h=last&&last.presensi==($('#up')||{}).value?last:null;ret
 function cari(){const v=$('#up').value,nn=$('#un').value.trim().toLowerCase(),h=db.hasil.concat(mine()).filter(x=>x.presensi==v&&x.mp==$('#um').value&&x.nama.trim().toLowerCase()==nn).pop();if(!h)return alert('Hasil tidak ditemukan. Periksa nomor presensi dan nama lengkap.');last=h;R()}
 // ---------- soal: tampilan & penilaian
 const tblH=t=>{if(!t||!Array.isArray(t.rows)||!t.rows.length)return'';const hd=t.head!==false;return`<table>${t.rows.map((r,i)=>`<tr>${r.map(c=>i===0&&hd?`<th>${mt(c)}</th>`:`<td>${mt(c)}</td>`).join('')}</tr>`).join('')}</table>`};
-const sH=s=>!s||s.k=='none'?'':s.k=='text'?(s.v?`<div class=stim>${mt(s.v)}</div>`:''):s.k=='img'?(s.v?`<div class=stim><img src="${esc(s.v)}"></div>`:''):s.k=='table'?(s.t&&s.t.rows?.length?`<div class=stim>${tblH(s.t)}</div>`:''):s.v?`<div class=stim><iframe src="${esc(s.v)}"></iframe></div>`:'';
+const chH=(c,sm)=>{if(!c||!Array.isArray(c.d)||!c.d.length)return'';
+const d=c.d.map(r=>({l:String(r.l??''),v:Math.max(0,parseFloat(String(r.v).replace(',','.'))||0)})),n=d.length,W=sm?320:560,H=sm?210:320,L=48,Rr=16,Tp=c.title?34:16,B=c.xl?58:44,pw=W-L-Rr,ph=H-Tp-B;
+let mx=Math.max(...d.map(r=>r.v))||1,st=parseFloat(String(c.step||'').replace(',','.'));
+if(!(st>0)||mx/st>40){const e=Math.pow(10,Math.floor(Math.log10(mx/5))),f=mx/5/e;st=(f<=1?1:f<=2?2:f<=5?5:10)*e}
+const k=Math.max(1,Math.ceil(mx/st-1e-9)),top=k*st,y=v=>Tp+ph-v/top*ph,bw=pw/n,fm=v=>String(+v.toFixed(4)).replace('.',',');
+let g=`<svg class=chart viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="Nunito,sans-serif" font-size="${sm?10:12}" role=img>`;
+if(c.title)g+=`<text x="${W/2}" y="20" text-anchor=middle font-weight=800 font-size="${sm?12:15}" fill="currentColor">${esc(c.title)}</text>`;
+for(let i=0;i<=k;i++){const yy=y(i*st);g+=`<line x1="${L}" x2="${W-Rr}" y1="${yy}" y2="${yy}" stroke="#d9c4c8" stroke-width="${i?1:1.6}"/><text x="${L-6}" y="${yy+4}" text-anchor=end fill="currentColor">${fm(i*st)}</text>`}
+if(c.type=='line'){const pt=d.map((r,i)=>[L+bw*(i+.5),y(r.v)]);g+=`<polyline fill=none stroke="var(--r)" stroke-width=3 points="${pt.map(a=>a.join(',')).join(' ')}"/>`+pt.map(a=>`<circle cx="${a[0]}" cy="${a[1]}" r=4 fill="var(--r)"/>`).join('')}
+else d.forEach((r,i)=>{g+=`<rect x="${L+bw*i+bw*.2}" y="${y(r.v)}" width="${bw*.6}" height="${r.v/top*ph}" fill="var(--r)" rx=3 />`});
+if(c.vl)d.forEach((r,i)=>{g+=`<text x="${L+bw*(i+.5)}" y="${y(r.v)-6}" text-anchor=middle font-weight=700 fill="currentColor">${fm(r.v)}</text>`});
+d.forEach((r,i)=>{g+=`<text x="${L+bw*(i+.5)}" y="${Tp+ph+16}" text-anchor=middle fill="currentColor">${esc(r.l)}</text>`});
+g+=`<line x1="${L}" x2="${L}" y1="${Tp}" y2="${Tp+ph}" stroke="currentColor"/>`;
+if(c.xl)g+=`<text x="${L+pw/2}" y="${H-8}" text-anchor=middle font-weight=700 fill="currentColor">${esc(c.xl)}</text>`;
+if(c.yl)g+=`<text transform="translate(12 ${Tp+ph/2}) rotate(-90)" text-anchor=middle font-weight=700 fill="currentColor">${esc(c.yl)}</text>`;
+return g+'</svg>'};
+const stl=q=>q.stims||(q.stim&&q.stim.k&&q.stim.k!='none'?[q.stim]:[]);
+const visH=v=>!v?'':v.k=='table'?(v.t&&v.t.rows?.length?`<div class=ovis>${tblH(v.t)}</div>`:''):v.k=='chart'?`<div class=ovis>${chH(v.c,1)}</div>`:'';
+const sH=s=>!s||s.k=='none'?'':s.k=='text'?(s.v?`<div class=stim>${mt(s.v)}</div>`:''):s.k=='img'?(s.v?`<div class=stim><img src="${esc(s.v)}"></div>`:''):s.k=='chart'?(s.c&&s.c.d?.length?`<div class=stim>${chH(s.c)}</div>`:''):s.k=='table'?(s.t&&s.t.rows?.length?`<div class=stim>${tblH(s.t)}</div>`:''):s.v?`<div class=stim><iframe src="${esc(s.v)}"></iframe></div>`:'';
 const mt=s=>String(s??'').split(/(\$\$[\s\S]+?\$\$|\$[^$\n]+?\$)/).map((p,i)=>{if(i%2==0)return esc(p);const d=p.startsWith('$$'),l=p.slice(d?2:1,d?-2:-1);try{return typeof katex!='undefined'?katex.renderToString(l,{displayMode:d,throwOnError:false}):esc(p)}catch(e){return esc(p)}}).join('');
-const oH=o=>mt(o.t)+(o.img?` <img class=th style="height:70px" src="${o.img}">`:'');
-const qH=(q,n,tot)=>`<div class=q><span class=qn>Soal ${n}${tot?' dari '+tot:''}</span>${sH(q.stim)}<div class=qt>${mt(q.text)}</div>${body(q)}</div>`;
+const oH=o=>mt(o.t)+(o.img?` <img class=th style="height:70px" src="${o.img}">`:'')+visH(o.vis);
+const qH=(q,n,tot)=>`<div class=q><span class=qn>Soal ${n}${tot?' dari '+tot:''}</span>${stl(q).map(sH).join('')}<div class=qt>${mt(q.text)}</div>${body(q)}</div>`;
 const od=q=>q._o||(q._o=db.cfg.shufOpt?shf(q.opts.map((_,i)=>i),(T?T.no:'x')+q.id):q.opts.map((_,i)=>i));
 const LT=k=>String.fromCharCode(65+k);
 function body(q){const a=A[q.id],id=q.id;
@@ -252,29 +272,44 @@ const TY={pg:'Pilihan ganda',mcma:'Pilihan ganda kompleks (MCMA)',kat:'Pilihan g
 const aSoal=()=>`<div class=row><button class=btn onclick="ne('pg')">+ Tambah soal</button><button class="btn o" onclick="imO()">📥 Impor dari dokumen</button><button class="btn o" onclick="pv(db.soal.filter(q=>!fm||q.mp==fm))">Pratinjau semua</button>${msel(fm,'fm')}<span>Status: <b>${db.cfg.pub?'Rilis':'Draf'}</b> (ubah di Pengaturan)</span></div>
 <div class=card><table><tr><th>No</th><th>Mapel</th><th>Jenis</th><th>Soal</th><th>Aksi</th></tr>${db.soal.filter(q=>!fm||q.mp==fm).map((q,i)=>`<tr><td>${i+1}</td><td>${mnm(q.mp)}</td><td>${TY[q.type]}</td><td>${esc(q.text).slice(0,60)}</td><td><button class="btn o s" onclick="pv([db.soal.find(x=>x.id=='${q.id}')])">Lihat</button> <button class="btn o s" onclick="ne(0,'${q.id}')">Edit</button> <button class="btn o s" onclick="if(confirm('Hapus soal?'))rm('soal','${q.id}').then(R)">Hapus</button></td></tr>`).join('')||'<tr><td colspan=4>Belum ada soal.</td></tr>'}</table></div>`;
 function pv(L){A={};$('#mod').innerHTML=`<div class=modal><div><button class="btn o s" onclick="$('#mod').innerHTML=''">Tutup pratinjau</button><h2>Pratinjau (tampilan siswa)</h2>${L.map((q,i)=>qH(q,i+1)).join('')}</div></div>`}
-function ne(type,id){if(id)E=JSON.parse(JSON.stringify(db.soal.find(q=>q.id==id)));else E=mk(type);edO()}
-function mk(t){const b={id:uid(),mp:fm||(db.mapel[0]||{}).id||'',type:t,text:'',stim:{k:'none',v:''},pts:1},o=n=>Array.from({length:n},()=>({t:''}));
+function ne(type,id){if(id)E=JSON.parse(JSON.stringify(db.soal.find(q=>q.id==id)));else E=mk(type);if(!E.stims){E.stims=stl(E).map(x=>({...x}));delete E.stim}edO()}
+function mk(t){const b={id:uid(),mp:fm||(db.mapel[0]||{}).id||'',type:t,text:'',stims:[],pts:1},o=n=>Array.from({length:n},()=>({t:''}));
 return{pg:{...b,opts:o(4),key:0},mcma:{...b,opts:o(3),key:[]},kat:{...b,opts:o(3),key:[false,false,false],lab:'Benar|Salah'},isian:{...b,key:''},jodoh:{...b,pairs:[{l:'',r:''},{l:'',r:''}]},uraian:{...b,key:''}}[t]}
 function edO(){$('#mod').innerHTML=`<div class=modal><div class=ed-wide><div class=ed-split><div id=ed></div><div class=ed-pv><div class=ed-pv-hd>👁️ Pratinjau Langsung (Tampilan Siswa)</div><div id=edpv></div></div></div></div></div>`;tgt='stim';edR()}
 function updPv(){const p=$('#edpv');if(!p||!E)return;const q=JSON.parse(JSON.stringify(E));delete q._o;delete q._r;A={};p.innerHTML=qH(q,1)}
-function tblEd(t){const rows=t.rows||[['Kolom 1','Kolom 2'],['','']];return`<div class=row style="margin-top:6px"><label class=op style="margin:0;padding:5px 10px"><input type=checkbox ${t.head!==false?'checked':''} onchange="E.stim.t.head=this.checked;updPv()"> Baris pertama sebagai header</label><button type=button class="btn o s" onclick="tRow(1)">+ Baris</button><button type=button class="btn o s" onclick="tCol(1)">+ Kolom</button>${rows.length>1?`<button type=button class="btn o s" onclick="tRow(-1)">- Baris</button>`:''}${rows[0].length>1?`<button type=button class="btn o s" onclick="tCol(-1)">- Kolom</button>`:''}</div><div class=tbl-ed><table>${rows.map((r,ri)=>`<tr>${r.map((c,ci)=>`<td><input value="${esc(c)}" placeholder="${ri===0&&t.head!==false?'Judul kolom':'Isi sel'}" oninput="E.stim.t.rows[${ri}][${ci}]=this.value;updPv()"></td>`).join('')}</tr>`).join('')}</table></div>`}
-function tRow(d){const t=E.stim.t,cols=t.rows[0]?.length||2;if(d>0)t.rows.push(Array(cols).fill(''));else if(t.rows.length>1)t.rows.pop();edR()}
-function tCol(d){const t=E.stim.t;t.rows.forEach((r,i)=>{if(d>0)r.push(i===0&&t.head!==false?'Kolom '+(r.length+1):'');else if(r.length>1)r.pop()});edR()}
-function setStimK(k){if(k=='table')E.stim={k:'table',v:'',t:{head:true,rows:[['Kolom 1','Kolom 2'],['','']]}};else E.stim={k,v:''};edR()}
-function edR(){const q=E,s=q.stim;let x=`<h2>${db.soal.some(d=>d.id==q.id)?'Edit':'Tambah'} soal</h2>${eqBar()}
-<label>Jenis soal<select onchange="const st=JSON.parse(JSON.stringify(E.stim)),tx=E.text;E=mk(this.value);E.id='${q.id}';E.mp='${q.mp}';E.stim=st;E.text=tx;edR()">${Object.entries(TY).map(([k,v])=>`<option value=${k} ${k==q.type?'selected':''}>${v}</option>`).join('')}</select></label>
+const SO=p=>p[0]=='s'?E.stims[+p.slice(1)]:E.opts[+p.slice(1)].vis;
+const SK=[['text','Teks'],['table','Tabel'],['chart','Grafik / diagram batang & garis'],['img','Gambar (unggah / tempel / URL)'],['file','File PDF'],['link','Tautan (Docs, Drive, YouTube embed)']];
+const newChart=()=>({type:'bar',title:'',xl:'',yl:'',step:'',vl:true,d:[{l:'A',v:10},{l:'B',v:20},{l:'C',v:15}]});
+const newTbl=()=>({head:true,rows:[['Kolom 1','Kolom 2'],['','']]});
+function stimEd(){let x='';E.stims.forEach((s,i)=>{x+=`<div class=stimbox><div class=row><b>Stimulus ${i+1}</b><select style="flex:1;margin:0" onchange="setStimK(${i},this.value)">${SK.map(([k,v])=>`<option value=${k} ${k==s.k?'selected':''}>${v}</option>`).join('')}</select><button class="btn o s" ${i?'':'disabled'} onclick="mvS(${i},-1)">↑</button><button class="btn o s" ${i<E.stims.length-1?'':'disabled'} onclick="mvS(${i},1)">↓</button><button class="btn o s" onclick="E.stims.splice(${i},1);edR()">Hapus</button></div>${stimBody(s,'s'+i)}</div>`});
+return x+`<button class="btn o s" onclick="E.stims.push({k:'text',v:''});edR()">+ Tambah stimulus</button>`}
+function stimBody(s,p){const i=p.slice(1);
+if(s.k=='text')return `<textarea rows=4 onfocus="tgt='${p}'" oninput="E.stims[${i}].v=this.value;updPv()">${esc(s.v)}</textarea>`;
+if(s.k=='table')return tblEd(p);
+if(s.k=='chart')return chEd(p);
+if(s.k=='img')return pz(p)+`<input placeholder="atau tempel URL gambar" onfocus="tgt='${p}'" value="${s.v&&!s.v.startsWith('data:')?esc(s.v):''}" onchange="E.stims[${i}].v=this.value;edR()">`+(s.v?`<div><img class=th style="height:90px" src="${esc(s.v)}"></div>`:'');
+if(s.k=='file')return `<input type=file accept=".pdf" onchange="pick(this,'f${i}')"><small>Hanya PDF (maks 1,5 MB).</small>`+(s.v?' ✅ PDF terpasang':'');
+return `<input placeholder="https://..." value="${esc(s.v)}" oninput="E.stims[${i}].v=this.value;updPv()">`}
+function tblEd(p){const o=SO(p),t=o.t||(o.t=newTbl()),rows=t.rows;
+return `<div class=row style="margin-top:6px"><label class=op style="margin:0;padding:5px 10px"><input type=checkbox ${t.head!==false?'checked':''} onchange="SO('${p}').t.head=this.checked;updPv()"> Baris pertama sebagai header</label><button type=button class="btn o s" onclick="tRow('${p}',1)">+ Baris</button><button type=button class="btn o s" onclick="tCol('${p}',1)">+ Kolom</button>${rows.length>1?`<button type=button class="btn o s" onclick="tRow('${p}',-1)">- Baris</button>`:''}${rows[0].length>1?`<button type=button class="btn o s" onclick="tCol('${p}',-1)">- Kolom</button>`:''}</div><div class=tbl-ed><table>${rows.map((r,ri)=>`<tr>${r.map((c,ci)=>`<td><input value="${esc(c)}" placeholder="${ri===0&&t.head!==false?'Judul kolom':'Isi sel'}" oninput="SO('${p}').t.rows[${ri}][${ci}]=this.value;updPv()"></td>`).join('')}</tr>`).join('')}</table></div>`}
+function tRow(p,d){const t=SO(p).t,cols=t.rows[0]?.length||2;if(d>0)t.rows.push(Array(cols).fill(''));else if(t.rows.length>1)t.rows.pop();edR()}
+function tCol(p,d){const t=SO(p).t;t.rows.forEach((r,i)=>{if(d>0)r.push(i===0&&t.head!==false?'Kolom '+(r.length+1):'');else if(r.length>1)r.pop()});edR()}
+function chEd(p){const o=SO(p),c=o.c||(o.c=newChart()),S=`SO('${p}').c`;
+return `<div class=row><label style="flex:1">Jenis<select onchange="${S}.type=this.value;updPv()"><option value=bar ${c.type!='line'?'selected':''}>Diagram batang</option><option value=line ${c.type=='line'?'selected':''}>Grafik garis</option></select></label><label style="flex:2">Judul grafik<input value="${esc(c.title)}" oninput="${S}.title=this.value;updPv()"></label></div><div class=row><label style="flex:1">Label sumbu X<input value="${esc(c.xl)}" oninput="${S}.xl=this.value;updPv()"></label><label style="flex:1">Label sumbu Y<input value="${esc(c.yl)}" oninput="${S}.yl=this.value;updPv()"></label><label style="flex:1">Interval sumbu Y (kosong = otomatis)<input value="${esc(c.step)}" oninput="${S}.step=this.value;updPv()"></label></div><label class=op><input type=checkbox ${c.vl?'checked':''} onchange="${S}.vl=this.checked;updPv()">Tampilkan nilai di atas batang/titik</label>${c.d.map((r,i)=>`<div class=row><input value="${esc(r.l)}" placeholder="Label (mis. Senin)" oninput="${S}.d[${i}].l=this.value;updPv()"><input value="${esc(r.v)}" placeholder="Nilai" style="max-width:130px" oninput="${S}.d[${i}].v=this.value;updPv()">${c.d.length>1?`<button type=button class="btn o s" onclick="${S}.d.splice(${i},1);edR()">Hapus</button>`:''}</div>`).join('')}<button type=button class="btn o s" onclick="${S}.d.push({l:'',v:''});edR()">+ Data</button>`}
+function setStimK(i,k){E.stims[i]=k=='table'?{k,v:'',t:newTbl()}:k=='chart'?{k,v:'',c:newChart()}:{k,v:''};edR()}
+function mvS(i,d){const a=E.stims;[a[i],a[i+d]]=[a[i+d],a[i]];edR()}
+const ovK=o=>{const c=o.vis?o.vis.k:o.img?'img':'none';return [['none','Tanpa lampiran'],['img','Gambar'],['table','Tabel'],['chart','Grafik']].map(([k,v])=>`<option value=${k} ${k==c?'selected':''}>${v}</option>`).join('')};
+function setOV(i,k){const o=E.opts[i];if(k=='none'){o.vis=null;o.img=''}else if(k=='img'){o.vis={k:'img'}}else{o.img='';o.vis=k=='table'?{k,t:newTbl()}:{k,c:newChart()}}edR()}
+const ovBody=(o,i)=>{const k=o.vis?o.vis.k:o.img?'img':'none';return k=='table'?`<div class=stimbox>${tblEd('o'+i)}</div>`:k=='chart'?`<div class=stimbox>${chEd('o'+i)}</div>`:k=='img'?`<div class=row>${pz('o'+i)}${o.img?`<img class=th src="${o.img}"><button class="btn o s" onclick="E.opts[${i}].img='';edR()">x</button>`:''}</div>`:''};
+function edR(){const q=E;let x=`<h2>${db.soal.some(d=>d.id==q.id)?'Edit':'Tambah'} soal</h2>${eqBar()}
+<label>Jenis soal<select onchange="const st=JSON.parse(JSON.stringify(E.stims)),tx=E.text;E=mk(this.value);E.id='${q.id}';E.mp='${q.mp}';E.stims=st;E.text=tx;edR()">${Object.entries(TY).map(([k,v])=>`<option value=${k} ${k==q.type?'selected':''}>${v}</option>`).join('')}</select></label>
 <label>Mata pelajaran<select onchange="E.mp=this.value">${db.mapel.map(m=>`<option value="${m.id}" ${m.id==q.mp?'selected':''}>${esc(m.nama)}</option>`).join('')}</select></label>
-<label>Stimulus<select onchange="setStimK(this.value)">${[['none','Tanpa stimulus'],['text','Teks (tulis manual)'],['table','Tabel (buat langsung)'],['img','Gambar / grafik (unggah, tempel, URL)'],['file','Unggah file (PDF)'],['link','Tautan (Docs, Drive, YouTube embed)']].map(([k,v])=>`<option value=${k} ${k==s.k?'selected':''}>${v}</option>`).join('')}</select></label>`;
-if(s.k=='text')x+=`<textarea rows=4 oninput="E.stim.v=this.value;updPv()">${esc(s.v)}</textarea>`;
-if(s.k=='table')x+=tblEd(s.t||(s.t={head:true,rows:[['Kolom 1','Kolom 2'],['','']]}));
-if(s.k=='img')x+=`${pz('stim')}<input placeholder="atau tempel URL gambar, atau tekan Ctrl+V untuk menempel gambar" onfocus="tgt='stim'" value="${s.v&&!s.v.startsWith('data:')?esc(s.v):''}" onchange="E.stim.v=this.value;edR()">`;
-if(s.k=='file')x+=`<input type=file accept=".pdf" onchange="pick(this,'file')"><small>Hanya PDF (maks 1,5 MB). Word/Slide: ubah ke PDF dulu atau pakai Tautan.</small>`;
-if(s.k=='link')x+=`<input placeholder="https://..." value="${esc(s.v)}" oninput="E.stim.v=this.value;updPv()">`;
-if((s.k=='img'||s.k=='file')&&s.v)x+=`<button class="btn o s" onclick="E.stim={k:'none',v:''};edR()">Hapus / ganti stimulus</button>`;
+<h2>Stimulus <small style="font-weight:400">(boleh lebih dari satu)</small></h2>`;
+x+=stimEd();
 x+=`<label>Pertanyaan<textarea rows=3 onfocus="tgt='stim'" oninput="E.text=this.value;updPv()">${esc(q.text)}</textarea></label>`;
 if(['pg','mcma','kat'].includes(q.type)){x+=`<h2>${q.type=='kat'?'Pernyataan':'Opsi jawaban'} <small style="font-weight:400">(${q.type=='pg'?'pilih kunci':'centang kunci'}${q.type=='kat'?': centang = label pertama':''})</small></h2>`;
 if(q.type=='kat')x+=`<label>Label (pisahkan |)<input list=lb value="${esc(q.lab)}" oninput="E.lab=this.value;updPv()"></label><datalist id=lb><option value="Benar|Salah"><option value="Tepat|Kurang tepat"><option value="Sesuai|Tidak sesuai"></datalist>`;
-x+=q.opts.map((o,i)=>`<div class=row>${q.type=='pg'?`<input type=radio name=ky ${q.key===i?'checked':''} onchange="E.key=${i};updPv()">`:q.type=='mcma'?`<input type=checkbox ${q.key.includes(i)?'checked':''} onchange="kx(${i});updPv()">`:`<input type=checkbox ${q.key[i]?'checked':''} onchange="E.key[${i}]=this.checked;updPv()">`}<input value="${esc(o.t)}" oninput="E.opts[${i}].t=this.value;updPv()" onfocus="tgt='o${i}'" placeholder="Teks (Ctrl+V untuk menempel gambar)"><label class="btn o s">🖼️ Gambar<input type=file accept="image/*" hidden onchange="pick(this,'o${i}')"></label><button class="btn o s" onclick="pcb('o${i}')">📋</button>${o.img?`<img class=th src="${o.img}"><button class="btn o s" onclick="E.opts[${i}].img='';edR()">x</button>`:''}${q.type=='kat'?'':`<button class="btn o s" onclick="dop(${i})">Hapus</button>`}</div>`).join('');
+x+=q.opts.map((o,i)=>`<div class=row>${q.type=='pg'?`<input type=radio name=ky ${q.key===i?'checked':''} onchange="E.key=${i};updPv()">`:q.type=='mcma'?`<input type=checkbox ${q.key.includes(i)?'checked':''} onchange="kx(${i});updPv()">`:`<input type=checkbox ${q.key[i]?'checked':''} onchange="E.key[${i}]=this.checked;updPv()">`}<input value="${esc(o.t)}" oninput="E.opts[${i}].t=this.value;updPv()" onfocus="tgt='o${i}'" placeholder="Teks (Ctrl+V untuk menempel gambar)"><select style="width:auto;margin:0" title="Lampiran opsi" onchange="setOV(${i},this.value)">${ovK(o)}</select>${q.type=='kat'?'':`<button class="btn o s" onclick="dop(${i})">Hapus</button>`}</div>${ovBody(o,i)}`).join('');
 if(q.type!='kat')x+=`<button class="btn o s" onclick="E.opts.push({t:''});edR()">+ Opsi</button>`}
 if(q.type=='isian')x+=`<label>Kunci jawaban (pisahkan | bila ada beberapa jawaban benar; kosong = tidak ikut nilai otomatis)<input value="${esc(q.key)}" oninput="E.key=this.value"></label>`;
 if(q.type=='jodoh')x+=`<h2>Pasangan</h2>`+q.pairs.map((p,i)=>`<div class=row><input value="${esc(p.l)}" placeholder="Kiri" oninput="E.pairs[${i}].l=this.value;updPv()"><input value="${esc(p.r)}" placeholder="Pasangan benar" oninput="E.pairs[${i}].r=this.value;updPv()"><button class="btn o s" onclick="E.pairs.splice(${i},1);edR()">Hapus</button></div>`).join('')+`<button class="btn o s" onclick="E.pairs.push({l:'',r:''});edR()">+ Pasangan</button>`;
@@ -286,11 +321,11 @@ async function up(f,isImg){if(!f)return'';const rd=()=>new Promise(r=>{const x=n
 if(isImg)return new Promise(r=>{const i=new Image;i.onload=()=>{const k=Math.min(1,900/i.width),c=document.createElement('canvas');c.width=i.width*k;c.height=i.height*k;c.getContext('2d').drawImage(i,0,0,c.width,c.height);r(c.toDataURL('image/jpeg',.8))};i.src=URL.createObjectURL(f)});
 if(f.type!='application/pdf'){alert('Hanya PDF yang dapat ditampilkan langsung. Ubah Word/Slide ke PDF dulu, atau pakai stimulus Tautan.');return''}
 if(f.size>1.5e6){alert('PDF terlalu besar (maks 1,5 MB). Kompres atau gunakan Tautan.');return''}return rd()}
-async function pick(inp,t){const f=inp.files[0];if(!f)return;setImg(t,await up(f,t!='file'))}
-function setImg(t,u){if(!u)return;if(t=='stim')E.stim={k:'img',v:u};else if(t=='file')E.stim={k:'file',v:u};else if(E.opts&&E.opts[+t.slice(1)])E.opts[+t.slice(1)].img=u;edR()}
+async function pick(inp,t){const f=inp.files[0];if(!f)return;setImg(t,await up(f,t[0]!='f'))}
+function setImg(t,u){if(!u)return;const i=+t.slice(1);if(t=='stim')E.stims.push({k:'img',v:u});else if(t[0]=='s')E.stims[i]={k:'img',v:u};else if(t[0]=='f')E.stims[i]={k:'file',v:u};else if(E.opts&&E.opts[i])E.opts[i].img=u;edR()}
 document.addEventListener('paste',e=>{if(!E||!tgt||view=='tes'||!$('#ed'))return;const f=[...e.clipboardData.files].find(f=>f.type.startsWith('image/'));if(f){e.preventDefault();up(f,1).then(u=>setImg(tgt,u))}});
-async function sq(){const hasS=E.stim.k=='table'?(E.stim.t?.rows||[]).some(r=>r.some(c=>c.trim())):Boolean(E.stim.v);if(!E.text.trim()&&!hasS)return alert('Isi pertanyaan atau stimulus.');if(E.type=='mcma'&&E.key.length!=2&&!confirm('Kunci MCMA tidak berisi 2 jawaban. Lanjutkan?'))return;
-delete E._o;delete E._r;if(!E.mp)return alert('Tambahkan mata pelajaran dulu di menu Mata Pelajaran.');await sv('soal',E);$('#mod').innerHTML='';R()}
+async function sq(){const hasS=E.stims.some(x=>x.k=='table'?(x.t?.rows||[]).some(r=>r.some(c=>c.trim())):x.k=='chart'?(x.c?.d||[]).length>0:Boolean(x.v));if(!E.text.trim()&&!hasS)return alert('Isi pertanyaan atau stimulus.');if(E.type=='mcma'&&E.key.length!=2&&!confirm('Kunci MCMA tidak berisi 2 jawaban. Lanjutkan?'))return;
+delete E._o;delete E._r;delete E.stim;if(!E.mp)return alert('Tambahkan mata pelajaran dulu di menu Mata Pelajaran.');await sv('soal',E);$('#mod').innerHTML='';R()}
 const aPes=()=>`<div class=card><h2>Tambah anggota</h2><div class=row><input id=an placeholder="Nama lengkap"><input id=ar type=number placeholder="No. presensi"><button class=btn onclick="addP()">Tambah</button></div></div>
 <div class=card><table><tr><th>Presensi</th><th>Nama</th><th></th></tr>${db.peserta.map(p=>`<tr><td>${esc(p.presensi)}</td><td>${esc(p.nama)}</td><td><button class="btn o s" onclick="if(confirm('Hapus anggota?'))rm('peserta','${p.id}').then(R)">Hapus</button></td></tr>`).join('')||'<tr><td colspan=3>Belum ada anggota.</td></tr>'}</table></div>`;
 async function addP(){const n=$('#an').value.trim(),r=$('#ar').value.trim();if(!n||!r)return alert('Isi nama dan nomor presensi.');await sv('peserta',{id:r,nama:n,presensi:r,kelas:6,sekolah:db.cfg.school});R()}
